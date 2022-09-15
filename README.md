@@ -1,2 +1,8 @@
 # game_of_life
-The Game of Life, also known simply as Life, is a cellular automaton devised by the British mathematician John Horton Conway. It is a zero-player game, meaning that its evolution is determined by its initial state, requiring no further input
+Реализация игры "Жизнь" на языках C, C++, Python и JavaScript. Об игре "Жизнь" можно почитать на [Википедии](https://ru.wikipedia.org/wiki/%D0%98%D0%B3%D1%80%D0%B0_%C2%AB%D0%96%D0%B8%D0%B7%D0%BD%D1%8C%C2%BB).
+
+## Правила игры
+
+Поле - прямоугольник 80 на 25 клеток. Подразумевается, что поле "замкнуто само на себя", к примеру у нижнего правого квадратика соседом справа является нижний левый квадратик, а соседом снизу - верхний правый.
+
+В папке **initial_states** есть разные начальные состояния игры, позаимствованные с сайта [playgameoflife.com](https://playgameoflife.com/).
