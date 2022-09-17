@@ -4,9 +4,33 @@
 #include <unistd.h>
 #include "../include/game_of_life.h"
 
+#define HIGH 50000
+#define MIDDLE 500000
+#define LOW 1000000
+
+#define CELL_FIELD_POS_X 1
+#define CELL_FIELD_POS_Y 1
+#define CELL_FIELD_HEIGHT 25
+#define CELL_FIELD_WIDTH 80
+
+#define MENU_POS_X 1
+#define MENU_POS_Y 1
+#define MENU_HEIGHT 5
+#define MENU_WIDTH 80
+
+#define COLOR_CELL_HAS_TOO_FEW_NEIGHBORS 1
+#define COLOR_CELL_HAS_ENOUGH_NEIGHBORS 2
+#define COLOR_CELL_HAS_TOO_MANY_NEIGHBORS 3
+#define COLOR_CELL_IS_DEAD 4
+#define COLOR_CELL_FIELD 5
+#define COLOR_MENU 6
+
+#define GOOD_MIN_NUMBER_OF_NEIGHBORS 2
+#define GOOD_MAX_NUMBER_OF_NEIGHBORS 3
+
 int main() {
-    int m = WIDTH;
-    int n = HEIGHT;
+    int m = CELL_FIELD_WIDTH;
+    int n = CELL_FIELD_HEIGHT;
     cell_type **matrix_1 = NULL;
     cell_type **matrix_2 = NULL;
     int result = 0;
@@ -48,6 +72,14 @@ void calculate_neighbors_for_cells(cell_type **matrix, int n, int m) {
             matrix[i][j].number_of_neighbors = get_number_of_living_neighbors(matrix, n, m, i, j);
         }
     }
+}
+
+WINDOW * create_window(int width, int height, int pos_x, int pos_y, int COLOR, bool is_colors_available) {
+    WINDOW *window = newwin(height, width, pos_y, pos_x);
+    if (is_colors_available) {
+        wbkgd(window, COLOR_PAIR(COLOR));
+    }
+    return window;
 }
 
 void decrease_speed(unsigned int *sleep_time_in_us) {
@@ -129,10 +161,12 @@ bool initialize_colors(void) {
     bool colors_available = has_colors();
     if (colors_available) {
         start_color();
-        init_pair(CELL_IS_DEAD, COLOR_WHITE, COLOR_WHITE);
-        init_pair(CELL_HAS_TOO_FEW_NEIGHBORS, COLOR_WHITE, COLOR_GREEN);
-        init_pair(CELL_HAS_ENOUGH_NEIGHBORS, COLOR_WHITE, COLOR_YELLOW);
-        init_pair(CELL_HAS_TOO_MANY_NEIGHBORS, COLOR_WHITE, COLOR_RED);
+        init_pair(COLOR_CELL_IS_DEAD, COLOR_WHITE, COLOR_WHITE);
+        init_pair(COLOR_CELL_HAS_TOO_FEW_NEIGHBORS, COLOR_WHITE, COLOR_GREEN);
+        init_pair(COLOR_CELL_HAS_ENOUGH_NEIGHBORS, COLOR_WHITE, COLOR_YELLOW);
+        init_pair(COLOR_CELL_HAS_TOO_MANY_NEIGHBORS, COLOR_WHITE, COLOR_RED);
+        init_pair(COLOR_CELL_FIELD, COLOR_WHITE, COLOR_WHITE);
+        init_pair(COLOR_MENU, COLOR_BLACK, COLOR_BLUE);
     }
     return colors_available;
 }
@@ -178,12 +212,15 @@ void live(cell_type **matrix_1, cell_type **matrix_2, int n, int m, unsigned int
     nodelay(stdscr, TRUE);
     noecho();
     bool is_colors_available = initialize_colors();
+    WINDOW *window_cell_field = create_window(m, n, CELL_FIELD_POS_X, CELL_FIELD_POS_Y, COLOR_CELL_FIELD, is_colors_available);
+    WINDOW *window_menu = create_window(MENU_WIDTH, MENU_HEIGHT, MENU_POS_X, CELL_FIELD_POS_Y + n + MENU_POS_Y,
+                                        COLOR_MENU, is_colors_available);
     int to_exit = 0;
     while (to_exit == 0) {
         long current_time = get_time_in_us();
         if (current_time - time_to_show >= *sleep_time_in_us) {
             time_to_show = current_time;
-            output(*matrix_source, n, m, *sleep_time_in_us, is_colors_available);
+            output(window_cell_field, window_menu, *matrix_source, n, m, *sleep_time_in_us, is_colors_available);
             matrix_source = turn == 1 ? &matrix_1 : &matrix_2;
             matrix_target = turn == 1 ? &matrix_2 : &matrix_1;
             update_matrix(*matrix_source, *matrix_target, n, m);
@@ -205,68 +242,73 @@ void live(cell_type **matrix_1, cell_type **matrix_2, int n, int m, unsigned int
     endwin();
 }
 
-void output(cell_type **matrix, int n, int m, unsigned int sleep_time_in_us, bool is_colors_available) {
-    clear();
-    move(0, 0);
-    output_field_of_cells(matrix, n, m, is_colors_available);
-    print_menu(sleep_time_in_us);
-    refresh();
+void output(WINDOW *window_cell_field, WINDOW *window_menu, cell_type **matrix, int n, int m, unsigned int sleep_time_in_us, bool is_colors_available) {
+    output_field_of_cells(window_cell_field, matrix, n, m, is_colors_available);
+    output_menu(window_menu, sleep_time_in_us);
+    doupdate();
 }
 
-void output_field_of_cells(cell_type **matrix, int n, int m, bool is_colors_available) {
+void output_field_of_cells(WINDOW *window, cell_type **matrix, int n, int m, bool is_colors_available) {
+    werase(window);
+    wmove(window, 0, 0);
     if (is_colors_available) {
-        output_field_of_cells_with_colors(matrix, n, m);
+        output_field_of_cells_with_colors(window, matrix, n, m);
     } else {
-        output_field_of_cells_without_colors(matrix, n, m);
+        output_field_of_cells_without_colors(window, matrix, n, m);
     }
+    wnoutrefresh(window);
 }
 
-void output_field_of_cells_with_colors(cell_type **matrix, int n, int m) {
+void output_field_of_cells_with_colors(WINDOW *window, cell_type **matrix, int n, int m) {
     chtype cell;
     for (int i = 0; i < n; i++) {
+        wmove(window, i, 0);
         for (int j = 0; j < m; j++) {
             if (matrix[i][j].state == 0) {
-                cell = ' ' | COLOR_PAIR(CELL_IS_DEAD);
+                cell = ' ' | COLOR_PAIR(COLOR_CELL_IS_DEAD);
             } else if (matrix[i][j].number_of_neighbors < GOOD_MIN_NUMBER_OF_NEIGHBORS) {
-                cell = ' ' | COLOR_PAIR(CELL_HAS_TOO_FEW_NEIGHBORS);
+                cell = ' ' | COLOR_PAIR(COLOR_CELL_HAS_TOO_FEW_NEIGHBORS);
             } else if (matrix[i][j].number_of_neighbors > GOOD_MAX_NUMBER_OF_NEIGHBORS) {
-                cell = ' ' | COLOR_PAIR(CELL_HAS_TOO_MANY_NEIGHBORS);
+                cell = ' ' | COLOR_PAIR(COLOR_CELL_HAS_TOO_MANY_NEIGHBORS);
             } else {
-                cell = ' ' | COLOR_PAIR(CELL_HAS_ENOUGH_NEIGHBORS);
+                cell = ' ' | COLOR_PAIR(COLOR_CELL_HAS_ENOUGH_NEIGHBORS);
             }
-            addch(cell);
+            waddch(window, cell);
         }
-        printw("\n");
     }
 }
 
-void output_field_of_cells_without_colors(cell_type **matrix, int n, int m) {
+void output_field_of_cells_without_colors(WINDOW *window, cell_type **matrix, int n, int m) {
     for (int i = 0; i < n; i++) {
+        wmove(window, i, 0);
         for (int j = 0; j < m; j++) {
             if (matrix[i][j].state == 0) {
-                printw(" ");
+                wprintw(window, " ");
             } else {
-                printw("0");
+                wprintw(window, "0");
             }
         }
-        printw("\n");
     }
 }
 
-void print_menu(unsigned int sleep_time_in_us) {
-    printw("To change speed, press + or - keys ");
+void output_menu(WINDOW *window, unsigned int sleep_time_in_us) {
+    werase(window);
+    wmove(window, 0, 0);
+    wprintw(window, "To change speed, press + or - keys ");
     switch (sleep_time_in_us) {
         case LOW:
-            printw("(current speed is LOW)");
+            wprintw(window, "(current speed is LOW)");
             break;
         case MIDDLE:
-            printw("(current speed is MIDDLE)");
+            wprintw(window, "(current speed is MIDDLE)");
             break;
         case HIGH:
-            printw("(current speed is HIGH)");
+            wprintw(window, "(current speed is HIGH)");
             break;
     }
-    printw("\nTo exit, print q");
+    wmove(window, 1, 0);
+    wprintw(window, "To exit, print q");
+    wnoutrefresh(window);
 }
 
 void update_matrix(cell_type **matrix_source, cell_type **matrix_target, int n, int m) {
