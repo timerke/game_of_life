@@ -19,11 +19,9 @@
 #define COLOR_CELL_HAS_TOO_FEW_NEIGHBORS 1
 #define COLOR_CELL_HAS_ENOUGH_NEIGHBORS 2
 #define COLOR_CELL_HAS_TOO_MANY_NEIGHBORS 3
-#define COLOR_CELL_IS_DEAD 4
-#define COLOR_CELL_FIELD 5
-
-#define COLOR_MENU 6
-#define COLOR_PROGRESS_BAR 7
+#define COLOR_CELL_FIELD 4
+#define COLOR_MENU 5
+#define COLOR_PROGRESS_BAR 6
 
 #define GOOD_MIN_NUMBER_OF_NEIGHBORS 2
 #define GOOD_MAX_NUMBER_OF_NEIGHBORS 3
@@ -155,7 +153,6 @@ bool initialize_colors(void) {
     if (colors_available) {
         start_color();
         
-        init_pair(COLOR_CELL_IS_DEAD, COLOR_WHITE, COLOR_WHITE);
         init_pair(COLOR_CELL_HAS_TOO_FEW_NEIGHBORS, COLOR_WHITE, COLOR_GREEN);
         init_pair(COLOR_CELL_HAS_ENOUGH_NEIGHBORS, COLOR_WHITE, COLOR_YELLOW);
         init_pair(COLOR_CELL_HAS_TOO_MANY_NEIGHBORS, COLOR_WHITE, COLOR_RED);
@@ -268,7 +265,7 @@ void output_field_of_cells_with_colors(WINDOW *window, cell_type **matrix, int h
         wmove(window, i, 0);
         for (int j = 0; j < width; j++) {
             if (matrix[i][j].state == 0) {
-                cell = ' ' | COLOR_PAIR(COLOR_CELL_IS_DEAD);
+                cell = ' ' | COLOR_PAIR(COLOR_CELL_FIELD);
             } else if (matrix[i][j].number_of_neighbors < GOOD_MIN_NUMBER_OF_NEIGHBORS) {
                 cell = ' ' | COLOR_PAIR(COLOR_CELL_HAS_TOO_FEW_NEIGHBORS);
             } else if (matrix[i][j].number_of_neighbors > GOOD_MAX_NUMBER_OF_NEIGHBORS) {
