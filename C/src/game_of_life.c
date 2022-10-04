@@ -26,16 +26,18 @@
 #define GOOD_MIN_NUMBER_OF_NEIGHBORS 2
 #define GOOD_MAX_NUMBER_OF_NEIGHBORS 3
 
+#define DEFAULT_SIZE 2
+#define INCREASE_HEIGHT 1
+#define INCREASE_WIDTH 2
+
 int main() {
-    int height = CELL_FIELD_HEIGHT;
-    int width = CELL_FIELD_WIDTH;
+    int height = 0;
+    int width = 0;
     cell_type **matrix_1 = NULL;
     cell_type **matrix_2 = NULL;
-    int result = 0;
-    if (allocate_dynamic_memory(&matrix_1, height, width) || allocate_dynamic_memory(&matrix_2, height, width)) {
-        result = 1;
-    } else {
-        result = input(matrix_1, height, width);
+    int result = 1;
+    if (input_initial_state(&matrix_1, &height, &width) == 0 && allocate_dynamic_memory(&matrix_2, height, width) == 0) {
+        result = 0;
         calculate_neighbors_for_cells(matrix_1, height, width);
         if (result == 0) {
             live(matrix_1, matrix_2, height, width);
@@ -50,7 +52,7 @@ int main() {
 
 int allocate_dynamic_memory(cell_type ***matrix, int height, int width) {
     int result = 0;
-    *matrix = malloc(height * width * sizeof(cell_type) + height* sizeof(cell_type *));
+    *matrix = malloc(height * width * sizeof(cell_type) + height * sizeof(cell_type *));
     if (*matrix == NULL) {
         printf("Failed to allocate memory\n");
         result = 1;
@@ -77,6 +79,21 @@ double calculate_sleep_time(double speed_portion) {
         sleep_time = MIN_WAIT_TIME_IN_US / speed_portion;
     }
     return sleep_time;
+}
+
+void copy_matrix(cell_type **matrix_source, int height_source, int width_source, cell_type **matrix_target, int height_target, int width_target) {
+    for (int i = 0; i < height_source; i++) {
+        if (i >= height_target) {
+            break;
+        }
+        for (int j = 0; j < width_source; j++) {
+            if (j >= width_target) {
+                break;
+            }
+            matrix_target[i][j].state = matrix_source[i][j].state;
+            matrix_target[i][j].number_of_neighbors = 0;
+        }
+    }
 }
 
 WINDOW * create_window(int width, int height, int pos_x, int pos_y, int COLOR, bool is_colors_available) {
@@ -144,6 +161,29 @@ int get_total_number_of_living_cells(cell_type **matrix, int height, int width) 
     return count;
 }
 
+int increase_dynamic_memory(cell_type ***matrix, int *height, int *width, int what_to_increase) {
+    cell_type **new_matrix = NULL;
+    int new_height = *height;
+    int new_width = *width;
+    int result = 0;
+    if (what_to_increase == INCREASE_HEIGHT) {
+        new_height += DEFAULT_SIZE;
+    } else if (what_to_increase == INCREASE_WIDTH) {
+        new_width += DEFAULT_SIZE;
+    }
+    result = allocate_dynamic_memory(&new_matrix, new_height, new_width);
+    if (result == 0) {
+        copy_matrix(*matrix, *height, *width, new_matrix, new_height, new_width);
+        free_dynamic_memory(*matrix);
+        *matrix = new_matrix;
+        *height = new_height;
+        *width = new_width;
+    } else {
+        printf("Failed to increase dynamic memory for matrix\n");
+    }
+    return result;
+}
+
 double increase_speed(double speed_portion) {
     return speed_portion + 0.1 <= 1.0 ? speed_portion + 0.1 : 1.0;
 }
@@ -164,14 +204,36 @@ bool initialize_colors(void) {
     return colors_available;
 }
 
-int input(cell_type **matrix, int height, int width) {
-    int result = 0;
-    for (int i = 0; i < height; i++) {
-        for (int j = 0; j < width; j++) {
-            if (scanf("%d", &matrix[i][j].state) != 1) {
-                result = 1;
-                break;
+int input_initial_state(cell_type ***matrix, int *height, int *width) {
+    int max_height = DEFAULT_SIZE;
+    int max_width = DEFAULT_SIZE;
+    int result = allocate_dynamic_memory(matrix, max_height, max_width);
+    if (result == 0) {
+        int i = 0;
+        int j = 0;
+        int state = 0;
+        char ch;
+        while ((ch = getchar()) != EOF) {
+            if (ch == '\n') {
+                i += 1;
+                *height = i;
+                *width = j;
+                j = 0;
+                continue;
+            } else if (ch == ' ' || ch == '0') {
+                state = 0;
+            } else {
+                state = 1;
             }
+            if (i >= max_height || j >= max_width) {
+                result = increase_dynamic_memory(matrix, &max_height, &max_width, i >= max_height ? INCREASE_HEIGHT : INCREASE_WIDTH);
+                if (result) {
+                    break;
+                }
+            }
+            (*matrix)[i][j].state = state;
+            (*matrix)[i][j].number_of_neighbors = 0;
+            j += 1;
         }
     }
     if (freopen("/dev/tty", "r", stdin) == NULL) {
@@ -204,9 +266,9 @@ void live(cell_type **matrix_1, cell_type **matrix_2, int height, int width) {
     cell_type ***matrix_target = NULL;
     long time_to_show = get_time_in_us();
     initscr();
-    cbreak();
-    nodelay(stdscr, TRUE);
     noecho();
+    nodelay(stdscr, TRUE);
+    cbreak();
     bool is_colors_available = initialize_colors();
     WINDOW *window_cell_field = create_window(width, height, CELL_FIELD_POS_X, MENU_POS_Y + MENU_HEIGHT + CELL_FIELD_POS_Y, COLOR_CELL_FIELD, is_colors_available);
     WINDOW *window_menu = create_window(MENU_WIDTH, MENU_HEIGHT, MENU_POS_X, MENU_POS_Y, COLOR_MENU, is_colors_available);
