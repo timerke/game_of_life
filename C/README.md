@@ -7,7 +7,7 @@ sudo apt-get update
 sudo apt-get install make libncurses5-dev libncursesw5-dev
 ```
 
-Чтобы собрать игру, в терминале перейдите в папку **src** и введите:
+Чтобы собрать игру, в терминале перейдите в папку **C** и введите:
 
 ```bash
 make
