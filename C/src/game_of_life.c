@@ -35,8 +35,8 @@ int main() {
     int width = 0;
     cell_type **matrix_1 = NULL;
     cell_type **matrix_2 = NULL;
-    int result = 1;
-    if (input_initial_state(&matrix_1, &height, &width) == 0 && allocate_dynamic_memory(&matrix_2, height, width) == 0) {
+    int result = input_initial_state(&matrix_1, &height, &width);
+    if (result == 0 && allocate_dynamic_memory(&matrix_2, height, width) == 0) {
         result = 0;
         calculate_neighbors_for_cells(matrix_1, height, width);
         if (result == 0) {
@@ -235,6 +235,10 @@ int input_initial_state(cell_type ***matrix, int *height, int *width) {
             (*matrix)[i][j].number_of_neighbors = 0;
             j += 1;
         }
+    }
+    if (*height == 0 || *width == 0) {
+        printf("Failed to read initial state of cell field\n");
+        result = 1;
     }
     if (freopen("/dev/tty", "r", stdin) == NULL) {
         result = 1;
