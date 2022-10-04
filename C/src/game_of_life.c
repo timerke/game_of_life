@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/time.h>
+#include <time.h>
 #include <unistd.h>
 #include "../include/game_of_life.h"
 
@@ -8,8 +10,10 @@
 
 #define CELL_FIELD_POS_X 1
 #define CELL_FIELD_POS_Y 1
-#define CELL_FIELD_HEIGHT 25
-#define CELL_FIELD_WIDTH 80
+#define CELL_FIELD_MAX_HEIGHT 40
+#define CELL_FIELD_MIN_HEIGHT 5
+#define CELL_FIELD_MAX_WIDTH 100
+#define CELL_FIELD_MIN_WIDTH 5
 
 #define MENU_POS_X 1
 #define MENU_POS_Y 1
@@ -30,12 +34,21 @@
 #define INCREASE_HEIGHT 1
 #define INCREASE_WIDTH 2
 
-int main() {
+int main(int argc, char *argv[]) {
     int height = 0;
     int width = 0;
     cell_type **matrix_1 = NULL;
     cell_type **matrix_2 = NULL;
-    int result = input_initial_state(&matrix_1, &height, &width);
+    int result = 0;
+    srand(time(NULL));
+    if (check_terminal_arguments(argc, argv, &height, &width) == 1) {
+        result = allocate_dynamic_memory(&matrix_1, height, width);
+        if (result == 0) {
+            generate_random_initial_state(matrix_1, height, width);
+        }
+    } else {
+        result = input_initial_state(&matrix_1, &height, &width);
+    }
     if (result == 0 && allocate_dynamic_memory(&matrix_2, height, width) == 0) {
         result = 0;
         calculate_neighbors_for_cells(matrix_1, height, width);
@@ -81,6 +94,28 @@ double calculate_sleep_time(double speed_portion) {
     return sleep_time;
 }
 
+int check_terminal_arguments(int argc, char *argv[], int *height, int *width) {
+    int random_mode = 0;
+    int height_local = 0;
+    int width_local = 0;
+    if (argc > 1) {
+        for (int i = 1; i < argc; i++) {
+            if (strcmp(argv[i], "--random") == 0 || strcmp(argv[i], "-r") == 0) {
+                random_mode = 1;
+            } else if ((strcmp(argv[i], "--height") == 0 || strcmp(argv[i], "-h") == 0) && i + 1 < argc) {
+                height_local = atoi(argv[i + 1]);
+            } else if ((strcmp(argv[i], "--width") == 0 || strcmp(argv[i], "-w") == 0) && i + 1 < argc) {
+                width_local = atoi(argv[i + 1]);
+            }
+        }
+    }
+    if (random_mode == 1) {
+        *height = height_local <= 0 ? get_random_size(CELL_FIELD_MIN_HEIGHT, CELL_FIELD_MAX_HEIGHT) : height_local;
+        *width = width_local <= 0 ? get_random_size(CELL_FIELD_MIN_WIDTH, CELL_FIELD_MAX_WIDTH) : width_local;
+    }
+    return random_mode;
+}
+
 void copy_matrix(cell_type **matrix_source, int height_source, int width_source, cell_type **matrix_target, int height_target, int width_target) {
     for (int i = 0; i < height_source; i++) {
         if (i >= height_target) {
@@ -115,6 +150,15 @@ void free_dynamic_memory(void *pointer) {
     }
 }
 
+void generate_random_initial_state(cell_type **matrix, int height, int width) {
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            matrix[i][j].state = rand() % 2;
+            matrix[i][j].number_of_neighbors = 0;
+        }
+    }
+}
+
 int get_number_of_living_neighbors(cell_type **matrix, int height, int width, int row, int column) {
     int number_of_live = 0;
     for (int i = row - 1; i <= row + 1; i++) {
@@ -141,6 +185,10 @@ int get_number_of_living_neighbors(cell_type **matrix, int height, int width, in
         }
     }
     return number_of_live;
+}
+
+int get_random_size(int min_size, int max_size) {
+    return rand() % max_size + min_size;
 }
 
 long get_time_in_us(void) {
