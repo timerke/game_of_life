@@ -294,8 +294,8 @@ int input_initial_state(cell_type ***matrix, int *height, int *width) {
     return result;
 }
 
-int interact_with_user(double *speed_portion, double *sleep_time_in_us) {
-    int stop = 0;
+int interact_with_user(double *speed_portion, double *sleep_time_in_us, cell_type **matrix, int height, int width) {
+    int action = 0;
     int ch = getch();
     if (ch != ERR) {
         if (ch == '+') {
@@ -303,13 +303,13 @@ int interact_with_user(double *speed_portion, double *sleep_time_in_us) {
         } else if (ch == '-') {
             *speed_portion = decrease_speed(*speed_portion);
         } else if (ch == 'q' || ch == 'Q') {
-            stop = 1;
+            action = 1;
         } else if (ch == 's' || ch == 'S') {
-            
+            save_matrix(matrix, height, width);
         }
         *sleep_time_in_us = calculate_sleep_time(*speed_portion);
     }
-    return stop;
+    return action;
 }
 
 void live(cell_type **matrix_1, cell_type **matrix_2, int height, int width) {
@@ -347,7 +347,7 @@ void live(cell_type **matrix_1, cell_type **matrix_2, int height, int width) {
             time_to_show = current_time;
             output(window_cell_field, window_menu, *matrix_source, height, width, speed_portion, is_colors_available, number_of_live_cells);
         }
-        if (interact_with_user(&speed_portion, &sleep_time_in_us)) {
+        if (interact_with_user(&speed_portion, &sleep_time_in_us, *matrix_source, height, width)) {
             to_exit = 1;
         }
     }
@@ -450,6 +450,23 @@ void output_speed_bar_without_colors(WINDOW *window, double speed_portion) {
         speed += 0.1;
     }
     wprintw(window, " %.1f%%", 100 * speed_portion);
+}
+
+void save_matrix(cell_type **matrix, int height, int width) {
+    FILE *file = fopen("cell_field_state.txt", "w");
+    if (file == NULL) {
+        printf("Failed to save cell field state to file\n");
+        return;
+    }
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            fprintf(file, "%d", matrix[i][j].state);
+        }
+        if (i != height - 1) {
+            fprintf(file, "\n");
+        }
+    }
+    fclose(file);
 }
 
 int update_matrix(cell_type **matrix_source, cell_type **matrix_target, int height, int width) {
