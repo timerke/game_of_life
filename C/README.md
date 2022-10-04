@@ -4,7 +4,7 @@
 
 ```bash
 sudo apt-get update
-sudo apt-get install make libncurses5-dev libncursesw5-dev
+sudo apt-get install build-essential make libncurses5-dev libncursesw5-dev
 ```
 
 Чтобы собрать игру, в терминале перейдите в папку **C** и введите:
