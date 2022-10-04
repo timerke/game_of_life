@@ -27,14 +27,15 @@ bool initialize_colors(void);
 int input_initial_state(cell_type ***matrix, int *height, int *width);
 int interact_with_user(double *speed_portion, double *sleep_time_in_us);
 void live(cell_type **matrix_1, cell_type **matrix_2, int height, int width);
-void output(WINDOW *window_cell_field, WINDOW *window_menu, cell_type **matrix, int height, int width, double speed_portion, bool is_colors_available);
+void output(WINDOW *window_cell_field, WINDOW *window_menu, cell_type **matrix, int height, int width, double speed_portion, bool is_colors_available,
+            int number_of_live_cells);
 void output_field_of_cells(WINDOW *window, cell_type **matrix, int height, int width, bool is_colors_available);
 void output_field_of_cells_with_colors(WINDOW *window, cell_type **matrix, int height, int width);
 void output_field_of_cells_without_colors(WINDOW *window, cell_type **matrix, int height, int width);
-void output_menu(WINDOW *window, double speed_portion, bool is_colors_available);
+void output_menu(WINDOW *window, double speed_portion, bool is_colors_available, int number_of_live_cells);
 void output_speed_bar(WINDOW *window, double speed_portion, bool is_colors_available);
 void output_speed_bar_with_colors(WINDOW *window, double speed_portion);
 void output_speed_bar_without_colors(WINDOW *window, double speed_portion);
-void update_matrix(cell_type **matrix_source, cell_type **matrix_target, int height, int width);
+int update_matrix(cell_type **matrix_source, cell_type **matrix_target, int height, int width);
 
 #endif  // C_INCLUDE_GAME_OF_LIFE_H_

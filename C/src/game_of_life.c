@@ -8,31 +8,31 @@
 
 #define MIN_WAIT_TIME_IN_US 50000
 
-#define CELL_FIELD_POS_X 1
-#define CELL_FIELD_POS_Y 1
+#define CELL_FIELD_POS_X      1
+#define CELL_FIELD_POS_Y      1
 #define CELL_FIELD_MAX_HEIGHT 40
 #define CELL_FIELD_MIN_HEIGHT 5
-#define CELL_FIELD_MAX_WIDTH 100
-#define CELL_FIELD_MIN_WIDTH 5
+#define CELL_FIELD_MAX_WIDTH  100
+#define CELL_FIELD_MIN_WIDTH  5
 
-#define MENU_POS_X 1
-#define MENU_POS_Y 1
-#define MENU_HEIGHT 3
-#define MENU_WIDTH 80
+#define MENU_POS_X  1
+#define MENU_POS_Y  1
+#define MENU_HEIGHT 4
+#define MENU_WIDTH  80
 
-#define COLOR_CELL_HAS_TOO_FEW_NEIGHBORS 1
-#define COLOR_CELL_HAS_ENOUGH_NEIGHBORS 2
+#define COLOR_CELL_HAS_TOO_FEW_NEIGHBORS  1
+#define COLOR_CELL_HAS_ENOUGH_NEIGHBORS   2
 #define COLOR_CELL_HAS_TOO_MANY_NEIGHBORS 3
-#define COLOR_CELL_FIELD 4
-#define COLOR_MENU 5
-#define COLOR_PROGRESS_BAR 6
+#define COLOR_CELL_FIELD                  4
+#define COLOR_MENU                        5
+#define COLOR_PROGRESS_BAR                6
 
 #define GOOD_MIN_NUMBER_OF_NEIGHBORS 2
 #define GOOD_MAX_NUMBER_OF_NEIGHBORS 3
 
-#define DEFAULT_SIZE 2
+#define DEFAULT_SIZE    2
 #define INCREASE_HEIGHT 1
-#define INCREASE_WIDTH 2
+#define INCREASE_WIDTH  2
 
 int main(int argc, char *argv[]) {
     int height = 0;
@@ -313,6 +313,7 @@ int interact_with_user(double *speed_portion, double *sleep_time_in_us) {
 }
 
 void live(cell_type **matrix_1, cell_type **matrix_2, int height, int width) {
+    int number_of_live_cells = get_total_number_of_living_cells(matrix_1, height, width);
     int turn = 1;
     cell_type ***matrix_source = &matrix_1;
     cell_type ***matrix_target = NULL;
@@ -331,10 +332,10 @@ void live(cell_type **matrix_1, cell_type **matrix_2, int height, int width) {
         long current_time = get_time_in_us();
         if (speed_portion != 0.0 && current_time - time_to_show >= sleep_time_in_us) {
             time_to_show = current_time;
-            output(window_cell_field, window_menu, *matrix_source, height, width, speed_portion, is_colors_available);
+            output(window_cell_field, window_menu, *matrix_source, height, width, speed_portion, is_colors_available, number_of_live_cells);
             matrix_source = turn == 1 ? &matrix_1 : &matrix_2;
             matrix_target = turn == 1 ? &matrix_2 : &matrix_1;
-            update_matrix(*matrix_source, *matrix_target, height, width);
+            number_of_live_cells = update_matrix(*matrix_source, *matrix_target, height, width);
             calculate_neighbors_for_cells(*matrix_target, height, width);
             matrix_source = matrix_target;
             if (turn == 1) {
@@ -344,20 +345,18 @@ void live(cell_type **matrix_1, cell_type **matrix_2, int height, int width) {
             }
         } else if (speed_portion == 0.0 && current_time - time_to_show >= sleep_time_in_us) {
             time_to_show = current_time;
-            output(window_cell_field, window_menu, *matrix_source, height, width, speed_portion, is_colors_available);
+            output(window_cell_field, window_menu, *matrix_source, height, width, speed_portion, is_colors_available, number_of_live_cells);
         }
         if (interact_with_user(&speed_portion, &sleep_time_in_us)) {
             to_exit = 1;
-        }
-        if (get_total_number_of_living_cells(matrix_1, height, width) == 0) {
-            to_exit = 2;
         }
     }
     endwin();
 }
 
-void output(WINDOW *window_cell_field, WINDOW *window_menu, cell_type **matrix, int n, int m, double speed_portion, bool is_colors_available) {
-    output_menu(window_menu, speed_portion, is_colors_available);
+void output(WINDOW *window_cell_field, WINDOW *window_menu, cell_type **matrix, int n, int m, double speed_portion, bool is_colors_available,
+            int number_of_live_cells) {
+    output_menu(window_menu, speed_portion, is_colors_available, number_of_live_cells);
     output_field_of_cells(window_cell_field, matrix, n, m, is_colors_available);
     doupdate();
 }
@@ -405,7 +404,7 @@ void output_field_of_cells_without_colors(WINDOW *window, cell_type **matrix, in
     }
 }
 
-void output_menu(WINDOW *window, double speed_portion, bool is_colors_available) {
+void output_menu(WINDOW *window, double speed_portion, bool is_colors_available, int number_of_live_cells) {
     werase(window);
     wmove(window, 0, 0);
     wprintw(window, "To change speed, press + or - keys ");
@@ -414,6 +413,8 @@ void output_menu(WINDOW *window, double speed_portion, bool is_colors_available)
     wprintw(window, "To save cell field state, print s");
     wmove(window, 2, 0);
     wprintw(window, "To exit, print q");
+    wmove(window, 3, 0);
+    wprintw(window, "Number of live cells: %d", number_of_live_cells);
     wnoutrefresh(window);
 }
 
@@ -451,7 +452,8 @@ void output_speed_bar_without_colors(WINDOW *window, double speed_portion) {
     wprintw(window, " %.1f%%", 100 * speed_portion);
 }
 
-void update_matrix(cell_type **matrix_source, cell_type **matrix_target, int height, int width) {
+int update_matrix(cell_type **matrix_source, cell_type **matrix_target, int height, int width) {
+    int number_of_live_cells = 0;
     for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
             int number_of_living_neighbors = get_number_of_living_neighbors(matrix_source, height, width, i, j);
@@ -463,6 +465,8 @@ void update_matrix(cell_type **matrix_source, cell_type **matrix_target, int hei
             } else {
                 matrix_target[i][j].state = matrix_source[i][j].state;
             }
+            number_of_live_cells += matrix_target[i][j].state;
         }
     }
+    return number_of_live_cells;
 }
