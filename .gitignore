@@ -53,3 +53,5 @@ build/
 Module.symvers
 Mkfile.old
 dkms.conf
+
+venv/
