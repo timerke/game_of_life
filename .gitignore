@@ -56,3 +56,4 @@ dkms.conf
 
 venv/
 __pycache__/
+.idea/

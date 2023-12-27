@@ -1,11 +1,15 @@
-from typing import List
+from typing import List, Union
 from life.lifewidget import LifeWidget
 
 
 class Cell:
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self, init_state: Union[int, str]) -> None:
+        """
+        :param init_state: initial state of cell.
+        """
+
+        self._state: int = int(init_state)
 
 
 class Life:
@@ -21,6 +25,5 @@ class Life:
 
         with open(file_name, "r", encoding="utf-8") as file:
             content = file.read()
-            for line in content.split():
-                for cell in line:
-                    pass
+        self._cells.clear()
+        self._cells = [[Cell(cell) for cell in line] for line in content.split("\n")]

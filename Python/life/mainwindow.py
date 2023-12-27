@@ -1,6 +1,7 @@
 import os
 from PyQt5.uic import loadUi
 from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QFileDialog, QMainWindow
 from life.life import Life
 from life.version import VERSION
@@ -18,6 +19,7 @@ class MainWindow(QMainWindow):
     def _init_ui(self) -> None:
         loadUi(os.path.join(self._dir_media, "mainwindow.ui"), self)
         self.setWindowTitle(f"GameOfLife v{VERSION}")
+        self.setWindowIcon(QIcon(os.path.join(self._dir_media, "icon.png")))
         self.button_generate_random_init_state.clicked.connect(self.generate_random_initial_state)
         self.button_open_init_state.clicked.connect(self.open_initial_state)
         self.button_start_stop.clicked.connect(self.start_or_stop)
